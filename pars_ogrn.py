@@ -36,7 +36,7 @@ def get_comp_finance(id):  # Бухгалтерия компании
     params = {'id': id}
     get_finance = requests.get(url, headers=headers, params=params)
     get_finance_json = get_finance.json()[0]
-    names = [companyName]
+    names = []
     for item in get_finance_json:
         names.append(get_finance_json[item])
     return names
