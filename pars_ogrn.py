@@ -1,5 +1,6 @@
 import requests
 import csv
+import json
 
 DICT_NAME_COMPANY = {}
 BASE_URL = 'https://огрн.онлайн/{}'
@@ -34,36 +35,48 @@ def get_id_company(id):  # Поиск общей информации по id к
 def get_comp_finance(id):  # Бухгалтерия компании
     url = BASE_URL.format('интеграция/компании/{}/финансы/'.format(id))
     params = {'id': id}
-    get_finance = requests.get(url, headers=headers, params=params)
-    get_finance_json = get_finance.json()[0]
+    get_finance = requests.get(url, headers=headers, params=params).json()
     names = []
-    for item in get_finance_json:
-        names.append(get_finance_json[item])
+    for item in range(len(get_finance)):
+        year = get_finance[item]['year']
+        f12003 = get_finance[item]['f12003']
+        f16003 = get_finance[item]['f16003']
+        f13103 = get_finance[item]['f13103']
+        f13703 = get_finance[item]['f13703']
+        f13003 = get_finance[item]['f13003']
+        f17003 = get_finance[item]['f17003']
+        f21103 = get_finance[item]['f21103']
+        f24003 = get_finance[item]['f24003']
+        f33118 = get_finance[item]['f33118']
+        finance = [year, f12003, f16003, f13103, f13703, f13003, f17003, f21103, f21103,
+                   f24003, f33118]
+        names.extend(finance)
     return names
 
 
 def get_institution(id):  # Поиск учредителя компании
     params = {'id': id}
     url = BASE_URL.format('интеграция/компании/{}/учредители/').format(id)
-    get_instit = requests.get(url, timeout=(5, 1), headers=headers, params=params)
-    if 'personOwner' in get_instit.json()[0]:
-        first_name = get_instit.json()[0]['personOwner']['firstName']
-        middle_name = get_instit.json()[0]['personOwner']['middleName']
-        sur_name = get_instit.json()[0]['personOwner']['surName']
-        inn_inst = get_instit.json()[0]['personOwner']['inn']
-        name_inst = '{} {} {}'.format(first_name, middle_name, sur_name)
-        name = [name_inst, inn_inst]
-        return name
-    elif 'company' in get_instit.json()[0]:
-        company_name = get_instit.json()[0]['company']['name']
-        inn_company = get_instit.json()[0]['company']['inn']
-        name = [company_name, inn_company]
-        return name
-    else:
-        company_name = get_instit.json()[0]['name']
-        inn_company = get_instit.json()[0]['inn']
-        name = [company_name, inn_company]
-        return name
+    get_instit = requests.get(url, timeout=(5, 1), headers=headers, params=params).json()
+    names = []
+    for item in range(len(get_instit)):
+        if 'personOwner' in get_instit[item]:
+            first_name = get_instit.json()[item]['personOwner']['firstName']
+            middle_name = get_instit.json()[item]['personOwner']['middleName']
+            sur_name = get_instit.json()[item]['personOwner']['surName']
+            inn_inst = get_instit.json()[item]['personOwner']['inn']
+            name_inst = '{} {} {}'.format(first_name, middle_name, sur_name)
+            name = [first_name, middle_name, sur_name, inn_inst, name_inst]
+            names.extend(name)
+        elif 'company' in get_instit[item]:
+            company_name = get_instit[item]['company']['name']
+            inn_company = get_instit[item]['company']['inn']
+            names.extend([company_name, inn_company])
+        else:
+            company_name = get_instit[item]['name']
+            inn_company = get_instit[item]['inn']
+            names.extend([company_name, inn_company])
+    return names
 
 
 def get_postname(id):  # Поиск компаний где работает учредитель
