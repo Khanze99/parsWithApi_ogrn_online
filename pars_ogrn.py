@@ -22,12 +22,19 @@ def get_inn_id(search):  # Поиск компаний по инн
 def get_id_company(id):  # Поиск общей информации по id компании
     url = BASE_URL.format('интеграция/компании/{}/'.format(id))
     params = {'id': id}
-    get_about = requests.get(url, timeout=(5, 2), headers=headers, params=params)
-    get_name_company = get_about.json()['name']  # Имя компании
-    DATA_FINANCE.append(get_name_company)
-    get_inn_company = get_about.json()['inn']
-    get_addr_company = get_about.json()['address']['fullHouseAddress']  # Адрес компании
-    get_date_company = get_about.json()['ogrnDate']  # Дата регистрации компании
+    get_about = requests.get(url, timeout=(5, 2), headers=headers, params=params).json()
+    get_name_company = get_about['name']  # Имя компании
+    get_inn_company = get_about['inn']
+    # print(get_about)
+    if 'address' in get_about:
+        global get_addr_company
+        get_addr_company = get_about['address']['fullHouseAddress']  # Адрес компании
+    elif 'address' not in get_about:
+        if 'fullHouseAddress' in get_about:
+            get_addr_company = get_about['fullHouseAddress']
+    else:
+        get_addr_company = get_about['address']
+    get_date_company = get_about['ogrnDate']  # Дата регистрации компании
     values = [get_name_company, get_inn_company, get_addr_company, get_date_company]
     return values
 
@@ -48,23 +55,23 @@ def get_comp_finance(id):  # Бухгалтерия компании
         f21103 = get_finance[item]['f21103']
         f24003 = get_finance[item]['f24003']
         f33118 = get_finance[item]['f33118']
-        finance = [year, f12003, f16003, f13103, f13703, f13003, f17003, f21103, f21103,
+        finance = [companyName, year, f12003, f16003, f13103, f13703, f13003, f17003, f21103,
                    f24003, f33118]
-        names.extend(finance)
+        names.append(finance)
     return names
 
 
 def get_institution(id):  # Поиск учредителя компании
     params = {'id': id}
     url = BASE_URL.format('интеграция/компании/{}/учредители/').format(id)
-    get_instit = requests.get(url, timeout=(5, 1), headers=headers, params=params).json()
+    get_instit = requests.get(url, timeout=(5, 2), headers=headers, params=params).json()
     names = []
     for item in range(len(get_instit)):
         if 'personOwner' in get_instit[item]:
-            first_name = get_instit.json()[item]['personOwner']['firstName']
-            middle_name = get_instit.json()[item]['personOwner']['middleName']
-            sur_name = get_instit.json()[item]['personOwner']['surName']
-            inn_inst = get_instit.json()[item]['personOwner']['inn']
+            first_name = get_instit[item]['personOwner']['firstName']
+            middle_name = get_instit[item]['personOwner']['middleName']
+            sur_name = get_instit[item]['personOwner']['surName']
+            inn_inst = get_instit[item]['personOwner']['inn']
             name_inst = '{} {} {}'.format(first_name, middle_name, sur_name)
             name = [first_name, middle_name, sur_name, inn_inst, name_inst]
             names.extend(name)
@@ -107,20 +114,19 @@ if __name__ == '__main__':
 
         for line in read:
             inn = str(line.rstrip('\n'))
-            try:
-                name_company = get_id_company(get_inn_id(inn))
-                name_inst = get_institution(get_inn_id(inn))
-                name_post = get_postname(get_inn_id(inn))
-                finance_comp = get_comp_finance(get_inn_id(inn))
-                name_company.extend(name_inst)
-                name_company.extend(name_post)
-                DATA.append(name_company)
-                print('_-----------------------------------------------------------------------_')
-                print(finance_comp)
-                DATA_FINANCE.append(finance_comp)
-                print(DATA_FINANCE)
-            except BaseException:
-                continue
+            # try:
+            name_company = get_id_company(get_inn_id(inn))
+            name_inst = get_institution(get_inn_id(inn))
+            name_post = get_postname(get_inn_id(inn))
+            finance_comp = get_comp_finance(get_inn_id(inn))
+            name_company.extend(name_inst)
+            name_company.extend(name_post)
+            DATA.append(name_company)
+            print('_-----------------------------------------------------------------------_')
+            print('_-----------------------------------------------------------------------_')
+            DATA_FINANCE.append(finance_comp)
+            # except BaseException:
+            #     continue
 
 
 with open('first_100.csv', 'a', encoding='utf-8') as file_write:
@@ -128,6 +134,7 @@ with open('first_100.csv', 'a', encoding='utf-8') as file_write:
         for line in DATA:
             writer.writerow(line)
 with open('finance.csv', 'a', encoding='utf-8') as finance_write:
-        writer = csv.writer(finance_write, delimiter='\n')
+        writer = csv.writer(finance_write, delimiter=',')
         for line in DATA_FINANCE:
-            writer.writerow([line])
+            for item in line:
+                writer.writerow(item)
