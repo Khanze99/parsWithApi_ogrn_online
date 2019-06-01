@@ -13,10 +13,10 @@ DATA_FINANCE = []  #'COMPANY_NAME,FINANCE'.split(',')
 def get_inn_id(search):  # Поиск компаний по инн
     url = BASE_URL.format('интеграция/компании/')
     params = {'инн': search}
-    get_id = requests.get(url, timeout=(5, 2), headers=headers, params=params,)  # заддержка т.к. >10 запросов в 1 сек, блокировка
+    get_id = requests.get(url, timeout=(5, 2), headers=headers, params=params).json()  # заддержка т.к. >10 запросов в 1 сек, блокировка
     global companyName
-    companyName = get_id.json()[0]['name']
-    return get_id.json()[0]['id']
+    companyName = get_id[0]['name']
+    return get_id[0]['id']
 
 
 def get_id_company(id):  # Поиск общей информации по id компании
@@ -25,7 +25,6 @@ def get_id_company(id):  # Поиск общей информации по id к
     get_about = requests.get(url, timeout=(5, 2), headers=headers, params=params).json()
     get_name_company = get_about['name']  # Имя компании
     get_inn_company = get_about['inn']
-    # print(get_about)
     if 'address' in get_about:
         global get_addr_company
         get_addr_company = get_about['address']['fullHouseAddress']  # Адрес компании
@@ -61,7 +60,7 @@ def get_comp_finance(id):  # Бухгалтерия компании
     return names
 
 
-def get_institution(id):  # Поиск учредителя компании
+def get_institution(id):  # Поиск учредителей компании
     params = {'id': id}
     url = BASE_URL.format('интеграция/компании/{}/учредители/').format(id)
     get_instit = requests.get(url, timeout=(5, 2), headers=headers, params=params).json()
@@ -73,7 +72,7 @@ def get_institution(id):  # Поиск учредителя компании
             sur_name = get_instit[item]['personOwner']['surName']
             inn_inst = get_instit[item]['personOwner']['inn']
             name_inst = '{} {} {}'.format(first_name, middle_name, sur_name)
-            name = [first_name, middle_name, sur_name, inn_inst, name_inst]
+            name = [inn_inst, name_inst]
             names.extend(name)
         elif 'company' in get_instit[item]:
             company_name = get_instit[item]['company']['name']
@@ -90,50 +89,38 @@ def get_postname(id):  # Поиск компаний где работает у�
     url = BASE_URL.format('интеграция/компании/{}/сотрудники/').format(id)
     params = {'id': id}
     get_name = requests.get(url, headers=headers, params=params).json()
-    if 'fullNameWithInn' in get_name[0]['person']:
-        full_name = get_name[0]['person']['fullNameWithInn']
-        full_name_post = get_name[0]['post']['fullName']
-        post_in_company = get_name[0]['postName']
-        names = [full_name, full_name_post, post_in_company]
-        return names
-    elif 'fullName' not in get_name[0]['person']:
-        first_name = get_name[0]['person']['firstName']
-        middle_name = get_name[0]['person']['middleName']
-        sur_name = get_name[0]['pesron']['surName']
-        inn = get_name[0]['person']['inn']
-        fullnameWithInn = '{} {} {} {}'.format(first_name, middle_name, sur_name, inn)
-        fulname_post = get_name[0]['post']['fullName']
-        post_name = get_name[0]['postName']
-        names = [fullnameWithInn, fulname_post, post_name]
-        return names
+    first_name = get_name[0]['person']['firstName']
+    middle_name = get_name[0]['person']['middleName']
+    sur_name = get_name[0]['person']['surName']
+    inn = get_name[0]['person']['inn']
+    fullname = '{} {} {} '.format(first_name, middle_name, sur_name)
+    post_name = get_name[0]['postName']
+    names = [fullname, inn, post_name]
+    return names
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # Начало программы, считывание ИНН, подача контекст в функции для запросов
     with open('100.txt', 'r', encoding='utf-8') as file:
         read = file.read().split('\n')
-
         for line in read:
             inn = str(line.rstrip('\n'))
-            # try:
-            name_company = get_id_company(get_inn_id(inn))
-            name_inst = get_institution(get_inn_id(inn))
-            name_post = get_postname(get_inn_id(inn))
-            finance_comp = get_comp_finance(get_inn_id(inn))
-            name_company.extend(name_inst)
+            id_company = get_inn_id(inn)
+            name_company = get_id_company(id_company)
+            name_inst = get_institution(id_company)
+            name_post = get_postname(id_company)
+            finance_comp = get_comp_finance(id_company)
             name_company.extend(name_post)
+            name_company.extend(name_inst)
             DATA.append(name_company)
-            print('_-----------------------------------------------------------------------_')
-            print('_-----------------------------------------------------------------------_')
             DATA_FINANCE.append(finance_comp)
-            # except BaseException:
-            #     continue
 
 
-with open('first_100.csv', 'a', encoding='utf-8') as file_write:
+
+with open('first_100.csv', 'a', encoding='utf-8') as file_write:  # Распределение в файл csv общей информации о компании
         writer = csv.writer(file_write, delimiter=',')
         for line in DATA:
             writer.writerow(line)
-with open('finance.csv', 'a', encoding='utf-8') as finance_write:
+with open('finance.csv', 'a', encoding='utf-8') as finance_write:  # Распределение в файл csv финансов компании
         writer = csv.writer(finance_write, delimiter=',')
         for line in DATA_FINANCE:
             for item in line:
