@@ -72,7 +72,7 @@ def get_institution(id):  # Поиск учредителей компании
             sur_name = get_instit[item]['personOwner']['surName']
             inn_inst = get_instit[item]['personOwner']['inn']
             name_inst = '{} {} {}'.format(first_name, middle_name, sur_name)
-            name = [inn_inst, name_inst]
+            name = [name_inst, inn_inst]
             names.extend(name)
         elif 'company' in get_instit[item]:
             company_name = get_instit[item]['company']['name']
