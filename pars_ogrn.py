@@ -74,9 +74,9 @@ def get_institution(id):  # Поиск учредителей компании
             name_inst = '{} {} {}'.format(first_name, middle_name, sur_name)
             name = [name_inst, inn_inst]
             names.extend(name)
-        elif 'company' in get_instit[item]:
-            company_name = get_instit[item]['company']['name']
-            inn_company = get_instit[item]['company']['inn']
+        elif 'companyOwner' in get_instit[item]:
+            company_name = get_instit[item]['companyOwner']['shortName']
+            inn_company = get_instit[item]['companyOwner']['inn']
             names.extend([company_name, inn_company])
         else:
             company_name = get_instit[item]['name']
@@ -115,11 +115,11 @@ if __name__ == '__main__':  # Начало программы, считыван�
             DATA_FINANCE.append(finance_comp)
 
 
-
 with open('first_100.csv', 'a', encoding='utf-8') as file_write:  # Распределение в файл csv общей информации о компании
         writer = csv.writer(file_write, delimiter=',')
         for line in DATA:
             writer.writerow(line)
+
 with open('finance.csv', 'a', encoding='utf-8') as finance_write:  # Распределение в файл csv финансов компании
         writer = csv.writer(finance_write, delimiter=',')
         for line in DATA_FINANCE:
